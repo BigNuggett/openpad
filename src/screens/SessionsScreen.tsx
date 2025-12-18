@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,11 @@ interface SessionsScreenProps {
   onSelectSession: (session: Session) => void;
 }
 
+interface GroupedSession extends SessionWithPreview {
+  children?: SessionWithPreview[];
+  isChild?: boolean;
+}
+
 export function SessionsScreen({
   sessions,
   loading,
@@ -29,6 +34,53 @@ export function SessionsScreen({
   onSelectSession,
 }: SessionsScreenProps) {
   const { theme, colors: c } = useTheme();
+  const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
+
+  // Group sessions by parent
+  const groupedSessions = useMemo(() => {
+    const parentSessions: GroupedSession[] = [];
+    const childrenMap = new Map<string, SessionWithPreview[]>();
+    
+    // First pass: separate parents and children
+    for (const session of sessions) {
+      if (session.parentID) {
+        const existing = childrenMap.get(session.parentID) || [];
+        existing.push(session);
+        childrenMap.set(session.parentID, existing);
+      } else {
+        parentSessions.push({ ...session });
+      }
+    }
+    
+    // Second pass: attach children to parents and count
+    for (const parent of parentSessions) {
+      const children = childrenMap.get(parent.id);
+      if (children) {
+        parent.children = children.sort((a, b) => {
+          const dateA = a.updatedAt || a.createdAt || '';
+          const dateB = b.updatedAt || b.createdAt || '';
+          return dateB.localeCompare(dateA);
+        });
+      }
+    }
+    
+    return parentSessions;
+  }, [sessions]);
+
+  // Count only parent sessions
+  const parentCount = groupedSessions.length;
+
+  const toggleExpanded = (sessionId: string) => {
+    setExpandedSessions(prev => {
+      const next = new Set(prev);
+      if (next.has(sessionId)) {
+        next.delete(sessionId);
+      } else {
+        next.add(sessionId);
+      }
+      return next;
+    });
+  };
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '';
@@ -46,15 +98,17 @@ export function SessionsScreen({
     return date.toLocaleDateString();
   };
 
-  const renderSession = ({ item }: { item: SessionWithPreview }) => (
+  const renderChildSession = (item: SessionWithPreview) => (
     <TouchableOpacity
-      style={[styles.sessionItem, { borderBottomColor: c.divider }]}
+      key={item.id}
+      style={[styles.childSessionItem, { borderBottomColor: c.divider, backgroundColor: c.bgHover }]}
       onPress={() => onSelectSession(item)}
       activeOpacity={0.7}
     >
+      <View style={[styles.childIndicator, { backgroundColor: c.accent }]} />
       <View style={styles.sessionContent}>
         <View style={styles.sessionHeader}>
-          <Text style={[styles.sessionTitle, { color: c.text }]} numberOfLines={1}>
+          <Text style={[styles.childSessionTitle, { color: c.text }]} numberOfLines={1}>
             {item.title || 'Untitled Session'}
           </Text>
           <Text style={[styles.sessionTime, { color: c.textMuted }]}>
@@ -67,25 +121,82 @@ export function SessionsScreen({
           </Text>
         )}
       </View>
-      
-      <Icon name="chevron-right" size={18} color={c.textMuted} />
+      <Icon name="chevron-right" size={16} color={c.textMuted} />
     </TouchableOpacity>
   );
 
+  const renderSession = ({ item }: { item: GroupedSession }) => {
+    const hasChildren = item.children && item.children.length > 0;
+    const isExpanded = expandedSessions.has(item.id);
+    
+    return (
+      <View>
+        <TouchableOpacity
+          style={[styles.sessionItem, { borderBottomColor: c.divider }]}
+          onPress={() => onSelectSession(item)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.sessionContent}>
+            <View style={styles.sessionHeader}>
+              <Text style={[styles.sessionTitle, { color: c.text }]} numberOfLines={1}>
+                {item.title || 'Untitled Session'}
+              </Text>
+              <Text style={[styles.sessionTime, { color: c.textMuted }]}>
+                {formatDate(item.updatedAt || item.createdAt)}
+              </Text>
+            </View>
+            {item.preview && (
+              <Text style={[styles.sessionPreview, { color: c.textSecondary }]} numberOfLines={1}>
+                {item.preview}
+              </Text>
+            )}
+          </View>
+          
+          {hasChildren ? (
+            <TouchableOpacity 
+              style={styles.expandButton}
+              onPress={() => toggleExpanded(item.id)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <View style={[styles.childCountBadge, { backgroundColor: c.accentSubtle }]}>
+                <Text style={[styles.childCountText, { color: c.accent }]}>
+                  {item.children!.length}
+                </Text>
+              </View>
+              <Icon 
+                name={isExpanded ? 'chevron-up' : 'chevron-down'} 
+                size={16} 
+                color={c.textMuted} 
+              />
+            </TouchableOpacity>
+          ) : (
+            <Icon name="chevron-right" size={18} color={c.textMuted} />
+          )}
+        </TouchableOpacity>
+        
+        {hasChildren && isExpanded && (
+          <View style={styles.childrenContainer}>
+            {item.children!.map(renderChildSession)}
+          </View>
+        )}
+      </View>
+    );
+  };
+
   return (
-    <SafeAreaView style={theme.container}>
+    <SafeAreaView style={theme.container} edges={['top']}>
       {/* Header */}
       <View style={[theme.header]}>
         <View>
           <Text style={theme.title}>Sessions</Text>
           <Text style={[theme.small, theme.textSecondary]}>
-            {sessions.length} {sessions.length === 1 ? 'session' : 'sessions'}
+            {parentCount} {parentCount === 1 ? 'session' : 'sessions'}
           </Text>
         </View>
       </View>
 
       <FlatList
-        data={sessions}
+        data={groupedSessions}
         keyExtractor={(item) => item.id}
         renderItem={renderSession}
         refreshControl={
@@ -151,6 +262,44 @@ const styles = StyleSheet.create({
   },
   sessionPreview: {
     ...typography.small,
+  },
+  expandButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  childCountBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  childCountText: {
+    ...typography.caption,
+    fontWeight: '600',
+  },
+  childrenContainer: {
+    marginLeft: spacing.md,
+  },
+  childSessionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    paddingRight: spacing.lg,
+    paddingLeft: spacing.md,
+    borderBottomWidth: 1,
+  },
+  childIndicator: {
+    width: 2,
+    height: '100%',
+    marginRight: spacing.md,
+    borderRadius: 1,
+  },
+  childSessionTitle: {
+    ...typography.small,
+    fontWeight: '500',
+    flex: 1,
   },
   emptyState: {
     flex: 1,

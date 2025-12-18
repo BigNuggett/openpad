@@ -9,6 +9,7 @@ export interface Session {
   createdAt?: string;
   updatedAt?: string;
   projectID?: string;
+  parentID?: string;
 }
 
 export interface SessionWithPreview extends Session {

@@ -56,8 +56,8 @@ function MainScreen({ navigation }: { navigation: any }) {
   }, [disconnect]);
 
   return (
-    <View style={theme.container}>
-      {activeTab === 'sessions' ? (
+    <View style={[theme.container, { backgroundColor: c.bg }]}>
+      <View style={[styles.screenContainer, activeTab !== 'sessions' && styles.hiddenScreen]}>
         <SessionsScreen
           sessions={sessions}
           loading={sessionsLoading}
@@ -65,12 +65,13 @@ function MainScreen({ navigation }: { navigation: any }) {
           onRefresh={refreshSessions}
           onSelectSession={handleSelectSession}
         />
-      ) : (
+      </View>
+      <View style={[styles.screenContainer, activeTab !== 'settings' && styles.hiddenScreen]}>
         <SettingsScreen
           serverUrl={serverUrl}
           onDisconnect={handleDisconnect}
         />
-      )}
+      </View>
 
       {/* Tab Bar */}
       <View style={styles.tabBarContainer}>
@@ -249,6 +250,13 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  screenContainer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  hiddenScreen: {
+    opacity: 0,
+    pointerEvents: 'none',
+  },
   tabBarContainer: {
     position: 'absolute',
     bottom: 0,
@@ -258,8 +266,8 @@ const styles = StyleSheet.create({
   tabBarBlur: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    paddingBottom: spacing.xxl,
-    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
+    paddingTop: spacing.sm,
   },
   tab: {
     flex: 1,

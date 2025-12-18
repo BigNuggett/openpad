@@ -23,7 +23,7 @@ export function SettingsScreen({
   const { theme, colors: c } = useTheme();
 
   return (
-    <SafeAreaView style={theme.container}>
+    <SafeAreaView style={theme.container} edges={['top']}>
       {/* Header */}
       <View style={[theme.header]}>
         <View>
