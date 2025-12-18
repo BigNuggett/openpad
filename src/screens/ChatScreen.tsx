@@ -4,13 +4,14 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  SafeAreaView,
-  RefreshControl,
   StyleSheet,
   Animated,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  Image,
+  Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../hooks/useTheme';
 import { Markdown } from '../components/Markdown';
@@ -22,8 +23,7 @@ interface ChatScreenProps {
   session: Session;
   messages: MessageWithParts[];
   loading: boolean;
-  refreshing: boolean;
-  onRefresh: () => void;
+  serverUrl: string;
   onBack: () => void;
 }
 
@@ -299,6 +299,55 @@ function ToolBlock({ part, colors }: { part: any; colors: any }) {
   );
 }
 
+// Check if a mime type is an image
+function isImageMime(mime?: string): boolean {
+  if (!mime) return false;
+  return mime.startsWith('image/');
+}
+
+// Construct full URL for images
+function getFullImageUrl(url: string, serverUrl: string): string {
+  if (!url) return '';
+  // If it's already an absolute URL, return as-is
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  // Otherwise, prepend the server URL
+  const baseUrl = serverUrl.endsWith('/') ? serverUrl.slice(0, -1) : serverUrl;
+  const path = url.startsWith('/') ? url : `/${url}`;
+  return `${baseUrl}${path}`;
+}
+
+// Image block component
+function ImageBlock({ part, colors, serverUrl }: { part: MessagePart; colors: any; serverUrl: string }) {
+  const [imageError, setImageError] = useState(false);
+  const screenWidth = Dimensions.get('window').width;
+  const maxImageWidth = screenWidth - spacing.lg * 2;
+  const maxImageHeight = 300;
+
+  const imageUrl = part.url ? getFullImageUrl(part.url, serverUrl) : '';
+
+  if (!imageUrl || imageError) {
+    return (
+      <View style={[styles.imagePlaceholder, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+        <Icon name="file" size={24} color={colors.textMuted} />
+        <Text style={[styles.imagePlaceholderText, { color: colors.textMuted }]}>
+          Image
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <Image
+      source={{ uri: imageUrl }}
+      style={[styles.messageImage, { maxWidth: maxImageWidth, maxHeight: maxImageHeight }]}
+      resizeMode="contain"
+      onError={() => setImageError(true)}
+    />
+  );
+}
+
 // Helper to check if a message has displayable content
 function hasDisplayableContent(message: MessageWithParts): boolean {
   const textContent = message.parts
@@ -309,13 +358,18 @@ function hasDisplayableContent(message: MessageWithParts): boolean {
   const toolParts = message.parts.filter(
     p => p.type === 'tool' || p.type === 'tool-invocation' || p.type === 'tool-result'
   );
+
+  const imageParts = message.parts.filter(
+    p => p.type === 'file' && isImageMime(p.mime)
+  );
   
-  return textContent.length > 0 || toolParts.length > 0;
+  return textContent.length > 0 || toolParts.length > 0 || imageParts.length > 0;
 }
 
-function MessageBlock({ message, colors }: { 
+function MessageBlock({ message, colors, serverUrl }: { 
   message: MessageWithParts; 
   colors: any;
+  serverUrl: string;
 }) {
   const isUser = message.info.role === 'user';
   
@@ -330,13 +384,19 @@ function MessageBlock({ message, colors }: {
     p => p.type === 'tool' || p.type === 'tool-invocation' || p.type === 'tool-result'
   );
 
+  // Get image parts
+  const imageParts = message.parts.filter(
+    p => p.type === 'file' && isImageMime(p.mime)
+  );
+
   // Don't render if no displayable content
-  if (!textContent && toolParts.length === 0) {
+  if (!textContent && toolParts.length === 0 && imageParts.length === 0) {
     return null;
   }
 
   const hasText = textContent.length > 0;
   const hasTools = toolParts.length > 0;
+  const hasImages = imageParts.length > 0;
 
   // User messages - with accent sidebar and tinted background
   if (isUser) {
@@ -344,18 +404,32 @@ function MessageBlock({ message, colors }: {
       <View style={[styles.userMessageBlock, { backgroundColor: colors.userMessageBg }]}>
         <View style={[styles.userMessageAccent, { backgroundColor: colors.accent }]} />
         <View style={styles.userMessageContent}>
-          <Markdown isUser={true}>{textContent}</Markdown>
+          {hasImages && (
+            <View style={styles.imagesContainer}>
+              {imageParts.map((part, index) => (
+                <ImageBlock key={index} part={part} colors={colors} serverUrl={serverUrl} />
+              ))}
+            </View>
+          )}
+          {hasText && <Markdown isUser={true}>{textContent}</Markdown>}
         </View>
       </View>
     );
   }
 
   // Assistant message with text - full width, no border radius
-  if (hasText) {
+  if (hasText || hasImages) {
     return (
       <View style={styles.messageContainer}>
         <View style={[styles.assistantMessageBlock, { backgroundColor: colors.assistantMessage }]}>
-          <Markdown isUser={false}>{textContent}</Markdown>
+          {hasImages && (
+            <View style={styles.imagesContainer}>
+              {imageParts.map((part, index) => (
+                <ImageBlock key={index} part={part} colors={colors} serverUrl={serverUrl} />
+              ))}
+            </View>
+          )}
+          {hasText && <Markdown isUser={false}>{textContent}</Markdown>}
         </View>
         {hasTools && (
           <View style={styles.toolsContainer}>
@@ -382,8 +456,7 @@ export function ChatScreen({
   session,
   messages,
   loading,
-  refreshing,
-  onRefresh,
+  serverUrl,
   onBack,
 }: ChatScreenProps) {
   const { theme, colors: c, isDark } = useTheme();
@@ -450,15 +523,9 @@ export function ChatScreen({
         inverted
         keyExtractor={(item, index) => item.info.id || String(index)}
         renderItem={({ item }) => (
-          <MessageBlock message={item} colors={c} />
+          <MessageBlock message={item} colors={c} serverUrl={serverUrl} />
         )}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={c.accent}
-          />
-        }
+
         onScroll={handleScroll}
         scrollEventThrottle={16}
         contentContainerStyle={[
@@ -556,6 +623,30 @@ const styles = StyleSheet.create({
   // Assistant message - edge to edge
   assistantMessageBlock: {
     padding: spacing.lg,
+  },
+
+  // Images
+  imagesContainer: {
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  messageImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 8,
+  },
+  imagePlaceholder: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  imagePlaceholderText: {
+    ...typography.small,
   },
   
   // Tools container

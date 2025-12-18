@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { BlurView } from 'expo-blur';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { OpenCodeProvider, useOpenCode, Session } from './src/providers/OpenCodeProvider';
@@ -125,14 +126,12 @@ function ChatScreenWrapper({ route, navigation }: { route: any; navigation: any 
   const {
     getSessionMessages,
     isSessionMessagesLoading,
-    isSessionMessagesRefreshing,
-    refreshSessionMessages,
     unsubscribeFromSession,
+    serverUrl,
   } = useOpenCode();
 
   const messages = getSessionMessages(session.id);
   const loading = isSessionMessagesLoading(session.id);
-  const refreshing = isSessionMessagesRefreshing(session.id);
 
   // Unsubscribe when navigating away (including swipe back gesture)
   useEffect(() => {
@@ -151,8 +150,7 @@ function ChatScreenWrapper({ route, navigation }: { route: any; navigation: any 
       session={session}
       messages={messages}
       loading={loading}
-      refreshing={refreshing}
-      onRefresh={() => refreshSessionMessages(session.id)}
+      serverUrl={serverUrl}
       onBack={handleBack}
     />
   );
@@ -242,9 +240,11 @@ function AppNavigator() {
 
 export default function App() {
   return (
-    <OpenCodeProvider>
-      <AppNavigator />
-    </OpenCodeProvider>
+    <SafeAreaProvider>
+      <OpenCodeProvider>
+        <AppNavigator />
+      </OpenCodeProvider>
+    </SafeAreaProvider>
   );
 }
 

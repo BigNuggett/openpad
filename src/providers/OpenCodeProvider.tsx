@@ -45,6 +45,10 @@ export interface MessagePart {
     output: number;
     reasoning: number;
   };
+  // For file/image parts
+  mime?: string;
+  filename?: string;
+  url?: string;
 }
 
 export interface MessageWithParts {
@@ -143,6 +147,7 @@ export function OpenCodeProvider({ children, defaultServerUrl = 'http://10.0.10.
   // SSE subscription state
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const sseAbortControllerRef = useRef<AbortController | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Helper to extract text preview from messages
   const extractPreview = (messages: MessageWithParts[]): string => {
@@ -407,26 +412,35 @@ export function OpenCodeProvider({ children, defaultServerUrl = 'http://10.0.10.
     
     const startSubscription = async () => {
       try {
-        const events = await clientRef.current!.event.subscribe();
+        const response = await clientRef.current!.event.subscribe();
         
-        // Process events
-        for await (const event of events.stream) {
+        // Process events from the stream
+        for await (const event of response.stream) {
           if (abortController.signal.aborted) break;
           
-          // Handle different event types
+          // The event structure from SSE
           const eventData = event as any;
-          const eventType = eventData?.type;
-          const properties = eventData?.properties;
+          
+          // Events can be wrapped in a payload or be direct
+          const payload = eventData?.payload || eventData;
+          const eventType = payload?.type;
+          const properties = payload?.properties;
+          
+          // Get sessionID from various places it might be
+          const eventSessionId = 
+            properties?.sessionID || 
+            properties?.session?.id ||
+            properties?.part?.sessionID ||
+            properties?.info?.sessionID;
           
           // Check if this event is for our session
-          if (properties?.sessionID === sessionId || properties?.session?.id === sessionId) {
+          if (eventSessionId === sessionId) {
             // Refresh messages when we get relevant events
             if (
-              eventType === 'message.created' ||
               eventType === 'message.updated' ||
-              eventType === 'part.created' ||
-              eventType === 'part.updated' ||
-              eventType === 'session.updated'
+              eventType === 'message.part.updated' ||
+              eventType === 'session.updated' ||
+              eventType === 'session.status'
             ) {
               // Silently refresh messages
               fetchSessionMessages(sessionId, true);
@@ -437,11 +451,27 @@ export function OpenCodeProvider({ children, defaultServerUrl = 'http://10.0.10.
         // Ignore abort errors
         if ((err as Error).name !== 'AbortError') {
           console.error('SSE subscription error:', err);
+          // Try to reconnect after a delay if not aborted
+          if (!abortController.signal.aborted) {
+            setTimeout(() => {
+              if (!abortController.signal.aborted && clientRef.current) {
+                startSubscription();
+              }
+            }, 3000);
+          }
         }
       }
     };
     
     startSubscription();
+    
+    // Also set up polling as a fallback (every 2 seconds)
+    // This ensures updates even if SSE doesn't work well in React Native
+    pollingIntervalRef.current = setInterval(() => {
+      if (!abortController.signal.aborted) {
+        fetchSessionMessages(sessionId, true);
+      }
+    }, 2000);
   }, [fetchSessionMessages]);
   
   // Unsubscribe from session
@@ -449,6 +479,10 @@ export function OpenCodeProvider({ children, defaultServerUrl = 'http://10.0.10.
     if (sseAbortControllerRef.current) {
       sseAbortControllerRef.current.abort();
       sseAbortControllerRef.current = null;
+    }
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
     }
     setActiveSessionId(null);
   }, []);
