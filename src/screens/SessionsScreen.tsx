@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -10,43 +10,25 @@ import {
 } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import { Icon } from '../components/Icon';
-import { spacing, radius, typography } from '../theme';
-import type { Session } from '../hooks/useOpenCode';
+import { spacing, typography } from '../theme';
+import type { Session, SessionWithPreview } from '../providers/OpenCodeProvider';
 
 interface SessionsScreenProps {
-  getSessions: () => Promise<Session[]>;
+  sessions: SessionWithPreview[];
+  loading: boolean;
+  refreshing: boolean;
+  onRefresh: () => void;
   onSelectSession: (session: Session) => void;
 }
 
 export function SessionsScreen({
-  getSessions,
+  sessions,
+  loading,
+  refreshing,
+  onRefresh,
   onSelectSession,
 }: SessionsScreenProps) {
   const { theme, colors: c } = useTheme();
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  const loadSessions = useCallback(async () => {
-    const data = await getSessions();
-    const sorted = data.sort((a, b) => {
-      const dateA = a.updatedAt || a.createdAt || '';
-      const dateB = b.updatedAt || b.createdAt || '';
-      return dateB.localeCompare(dateA);
-    });
-    setSessions(sorted);
-    setLoading(false);
-  }, [getSessions]);
-
-  useEffect(() => {
-    loadSessions();
-  }, [loadSessions]);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadSessions();
-    setRefreshing(false);
-  }, [loadSessions]);
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '';
@@ -58,32 +40,35 @@ export function SessionsScreen({
     const days = Math.floor(hours / 24);
     
     if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
+    if (minutes < 60) return `${minutes}m`;
+    if (hours < 24) return `${hours}h`;
+    if (days < 7) return `${days}d`;
     return date.toLocaleDateString();
   };
 
-  const renderSession = ({ item }: { item: Session }) => (
+  const renderSession = ({ item }: { item: SessionWithPreview }) => (
     <TouchableOpacity
-      style={[styles.sessionItem, { backgroundColor: c.bgCard, borderBottomColor: c.divider }]}
+      style={[styles.sessionItem, { borderBottomColor: c.divider }]}
       onPress={() => onSelectSession(item)}
       activeOpacity={0.7}
     >
-      <View style={[styles.sessionIcon, { backgroundColor: c.accentSubtle }]}>
-        <Icon name="message-square" size={20} color={c.accent} />
-      </View>
-      
       <View style={styles.sessionContent}>
-        <Text style={[theme.bodyMedium]} numberOfLines={1}>
-          {item.title || 'Untitled Session'}
-        </Text>
-        <Text style={[theme.small, theme.textSecondary]}>
-          {formatDate(item.updatedAt || item.createdAt)}
-        </Text>
+        <View style={styles.sessionHeader}>
+          <Text style={[styles.sessionTitle, { color: c.text }]} numberOfLines={1}>
+            {item.title || 'Untitled Session'}
+          </Text>
+          <Text style={[styles.sessionTime, { color: c.textMuted }]}>
+            {formatDate(item.updatedAt || item.createdAt)}
+          </Text>
+        </View>
+        {item.preview && (
+          <Text style={[styles.sessionPreview, { color: c.textSecondary }]} numberOfLines={1}>
+            {item.preview}
+          </Text>
+        )}
       </View>
       
-      <Icon name="chevron-right" size={20} color={c.textMuted} />
+      <Icon name="chevron-right" size={18} color={c.textMuted} />
     </TouchableOpacity>
   );
 
@@ -116,10 +101,8 @@ export function SessionsScreen({
         ]}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <View style={[styles.emptyIcon, { backgroundColor: c.accentSubtle }]}>
-              <Icon name="message-square" size={32} color={c.accent} />
-            </View>
-            <Text style={[theme.subtitle, { marginTop: spacing.lg }]}>
+            <Icon name="inbox" size={48} color={c.textMuted} />
+            <Text style={[theme.subtitle, { marginTop: spacing.lg, color: c.text }]}>
               {loading ? 'Loading...' : 'No Sessions'}
             </Text>
             <Text style={[theme.body, theme.textSecondary, styles.emptyText]}>
@@ -144,35 +127,36 @@ const styles = StyleSheet.create({
   sessionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,
   },
-  sessionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   sessionContent: {
     flex: 1,
-    marginLeft: spacing.lg,
-    marginRight: spacing.md,
+    marginRight: spacing.sm,
     gap: spacing.xs,
+  },
+  sessionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  sessionTitle: {
+    ...typography.bodyMedium,
+    flex: 1,
+  },
+  sessionTime: {
+    ...typography.caption,
+  },
+  sessionPreview: {
+    ...typography.small,
   },
   emptyState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xxl,
-  },
-  emptyIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   emptyText: {
     textAlign: 'center',

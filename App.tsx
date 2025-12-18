@@ -8,18 +8,18 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { BlurView } from 'expo-blur';
-import { useOpenCode, Session } from './src/hooks/useOpenCode';
+import { OpenCodeProvider, useOpenCode, Session } from './src/providers/OpenCodeProvider';
 import { useTheme } from './src/hooks/useTheme';
 import { ConnectScreen } from './src/screens/ConnectScreen';
 import { SessionsScreen } from './src/screens/SessionsScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { ChatScreen } from './src/screens/ChatScreen';
 import { Icon } from './src/components/Icon';
-import { spacing, radius } from './src/theme';
+import { spacing } from './src/theme';
 
 type Tab = 'sessions' | 'settings';
 
-export default function App() {
+function AppContent() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { theme, colors: c } = useTheme();
@@ -32,9 +32,16 @@ export default function App() {
     connect,
     disconnect,
     setServerUrl,
-    getSessions,
-    getProjects,
+    sessions,
+    sessionsLoading,
+    sessionsRefreshing,
+    refreshSessions,
     getSessionMessages,
+    isSessionMessagesLoading,
+    isSessionMessagesRefreshing,
+    refreshSessionMessages,
+    subscribeToSession,
+    unsubscribeFromSession,
   } = useOpenCode();
 
   const [activeTab, setActiveTab] = useState<Tab>('sessions');
@@ -60,11 +67,13 @@ export default function App() {
 
   const handleSelectSession = useCallback((session: Session) => {
     setSelectedSession(session);
-  }, []);
+    subscribeToSession(session.id);
+  }, [subscribeToSession]);
 
   const handleBackFromChat = useCallback(() => {
+    unsubscribeFromSession();
     setSelectedSession(null);
-  }, []);
+  }, [unsubscribeFromSession]);
 
   // Show connect screen if not connected
   if (!connected) {
@@ -84,12 +93,19 @@ export default function App() {
 
   // Show chat screen if session is selected
   if (selectedSession) {
+    const messages = getSessionMessages(selectedSession.id);
+    const loading = isSessionMessagesLoading(selectedSession.id);
+    const refreshing = isSessionMessagesRefreshing(selectedSession.id);
+    
     return (
       <>
         <StatusBar style={isDark ? 'light' : 'dark'} />
         <ChatScreen
           session={selectedSession}
-          getSessionMessages={getSessionMessages}
+          messages={messages}
+          loading={loading}
+          refreshing={refreshing}
+          onRefresh={() => refreshSessionMessages(selectedSession.id)}
           onBack={handleBackFromChat}
         />
       </>
@@ -103,7 +119,10 @@ export default function App() {
       <View style={theme.container}>
         {activeTab === 'sessions' ? (
           <SessionsScreen
-            getSessions={getSessions}
+            sessions={sessions}
+            loading={sessionsLoading}
+            refreshing={sessionsRefreshing}
+            onRefresh={refreshSessions}
             onSelectSession={handleSelectSession}
           />
         ) : (
@@ -159,6 +178,14 @@ export default function App() {
         </View>
       </View>
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <OpenCodeProvider>
+      <AppContent />
+    </OpenCodeProvider>
   );
 }
 

@@ -5,69 +5,69 @@ import { StyleSheet, Platform } from 'react-native';
 
 export const colors = {
   dark: {
-    // Core backgrounds - deep with subtle warmth
-    bg: '#0f0f12',
-    bgElevated: '#18181d',
-    bgCard: '#1e1e24',
-    bgHover: '#252530',
+    // Core backgrounds - minimal dark
+    bg: '#0a0a0a',
+    bgElevated: '#141414',
+    bgCard: '#1a1a1a',
+    bgHover: '#222222',
     
     // Text hierarchy
-    text: '#f5f5f7',
-    textSecondary: '#a1a1aa',
-    textMuted: '#71717a',
-    textInverse: '#0f0f12',
+    text: '#fafafa',
+    textSecondary: '#a3a3a3',
+    textMuted: '#737373',
+    textInverse: '#0a0a0a',
     
-    // Accent - warm teal/cyan
-    accent: '#22d3ee',
-    accentMuted: '#0891b2',
-    accentSubtle: 'rgba(34, 211, 238, 0.12)',
-    
-    // Semantic
-    success: '#4ade80',
-    warning: '#fbbf24',
-    error: '#f87171',
-    info: '#60a5fa',
-    
-    // Borders and dividers
-    border: '#27272a',
-    borderLight: '#3f3f46',
-    divider: 'rgba(255, 255, 255, 0.06)',
-    
-    // Overlays
-    overlay: 'rgba(0, 0, 0, 0.5)',
-    glass: 'rgba(30, 30, 36, 0.8)',
-    
-    // Message blocks
-    userMessage: '#0891b2',
-    assistantMessage: '#1e1e24',
-  },
-  light: {
-    // Core backgrounds - clean white with subtle gray
-    bg: '#fafafa',
-    bgElevated: '#ffffff',
-    bgCard: '#ffffff',
-    bgHover: '#f4f4f5',
-    
-    // Text hierarchy
-    text: '#18181b',
-    textSecondary: '#52525b',
-    textMuted: '#a1a1aa',
-    textInverse: '#ffffff',
-    
-    // Accent - warm teal/cyan
-    accent: '#0891b2',
-    accentMuted: '#06b6d4',
-    accentSubtle: 'rgba(8, 145, 178, 0.08)',
+    // Accent - orange
+    accent: '#f97316',
+    accentMuted: '#ea580c',
+    accentSubtle: 'rgba(249, 115, 22, 0.12)',
     
     // Semantic
     success: '#22c55e',
-    warning: '#f59e0b',
+    warning: '#eab308',
     error: '#ef4444',
     info: '#3b82f6',
     
     // Borders and dividers
-    border: '#e4e4e7',
-    borderLight: '#f4f4f5',
+    border: '#262626',
+    borderLight: '#404040',
+    divider: 'rgba(255, 255, 255, 0.06)',
+    
+    // Overlays
+    overlay: 'rgba(0, 0, 0, 0.6)',
+    glass: 'rgba(20, 20, 20, 0.8)',
+    
+    // Message blocks
+    userMessage: '#f97316',
+    assistantMessage: '#1a1a1a',
+  },
+  light: {
+    // Core backgrounds - clean minimal
+    bg: '#fafafa',
+    bgElevated: '#ffffff',
+    bgCard: '#ffffff',
+    bgHover: '#f5f5f5',
+    
+    // Text hierarchy
+    text: '#0a0a0a',
+    textSecondary: '#525252',
+    textMuted: '#a3a3a3',
+    textInverse: '#fafafa',
+    
+    // Accent - orange
+    accent: '#ea580c',
+    accentMuted: '#f97316',
+    accentSubtle: 'rgba(234, 88, 12, 0.08)',
+    
+    // Semantic
+    success: '#16a34a',
+    warning: '#ca8a04',
+    error: '#dc2626',
+    info: '#2563eb',
+    
+    // Borders and dividers
+    border: '#e5e5e5',
+    borderLight: '#f5f5f5',
     divider: 'rgba(0, 0, 0, 0.04)',
     
     // Overlays
@@ -75,8 +75,8 @@ export const colors = {
     glass: 'rgba(255, 255, 255, 0.8)',
     
     // Message blocks
-    userMessage: '#0891b2',
-    assistantMessage: '#f4f4f5',
+    userMessage: '#ea580c',
+    assistantMessage: '#f5f5f5',
   },
 };
 

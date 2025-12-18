@@ -7,19 +7,23 @@ import {
   SafeAreaView,
   RefreshControl,
   StyleSheet,
-  ScrollView,
-  Platform,
+  Animated,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../hooks/useTheme';
 import { Markdown } from '../components/Markdown';
 import { Icon, IconName } from '../components/Icon';
-import { spacing, radius, typography } from '../theme';
-import type { Session, MessageWithParts, MessagePart } from '../hooks/useOpenCode';
+import { spacing, typography } from '../theme';
+import type { Session, MessageWithParts, MessagePart } from '../providers/OpenCodeProvider';
 
 interface ChatScreenProps {
   session: Session;
-  getSessionMessages: (sessionId: string) => Promise<MessageWithParts[]>;
+  messages: MessageWithParts[];
+  loading: boolean;
+  refreshing: boolean;
+  onRefresh: () => void;
   onBack: () => void;
 }
 
@@ -211,7 +215,7 @@ function ToolBlock({ part, colors }: { part: any; colors: any }) {
   const accentColor = isComplete ? colors.success : colors.warning;
   
   return (
-    <View style={[styles.toolBlock, { borderLeftColor: accentColor }]}>
+    <View style={[styles.toolBlock, { borderLeftColor: accentColor, backgroundColor: colors.bgCard }]}>
       <TouchableOpacity 
         style={styles.toolRow} 
         onPress={() => hasExpandedContent && setExpanded(!expanded)}
@@ -334,34 +338,24 @@ function MessageBlock({ message, colors }: {
   const hasText = textContent.length > 0;
   const hasTools = toolParts.length > 0;
 
-  // User messages - always show with card
+  // User messages - full width, no border radius
   if (isUser) {
     return (
-      <View style={styles.messageContainer}>
-        <View style={styles.roleRow}>
-          <Icon name="user" size={16} color={colors.accent} />
-          <Text style={[styles.roleLabel, { color: colors.textSecondary }]}>You</Text>
-        </View>
-        <View style={[styles.userMessageBlock, { backgroundColor: colors.userMessage }]}>
-          <Markdown isUser={true}>{textContent}</Markdown>
-        </View>
+      <View style={[styles.userMessageBlock, { backgroundColor: colors.userMessage }]}>
+        <Markdown isUser={true}>{textContent}</Markdown>
       </View>
     );
   }
 
-  // Assistant message with text - text in card, tools always separate
+  // Assistant message with text - full width, no border radius
   if (hasText) {
     return (
       <View style={styles.messageContainer}>
-        <View style={styles.roleRow}>
-          <Icon name="bot" size={16} color={colors.textSecondary} />
-          <Text style={[styles.roleLabel, { color: colors.textSecondary }]}>Assistant</Text>
-        </View>
-        <View style={[styles.assistantMessageBlock, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+        <View style={[styles.assistantMessageBlock, { backgroundColor: colors.assistantMessage }]}>
           <Markdown isUser={false}>{textContent}</Markdown>
         </View>
         {hasTools && (
-          <View style={styles.toolsAfterText}>
+          <View style={styles.toolsContainer}>
             {toolParts.map((part, index) => (
               <ToolBlock key={index} part={part} colors={colors} />
             ))}
@@ -371,9 +365,9 @@ function MessageBlock({ message, colors }: {
     );
   }
 
-  // Tool-only message - flat, no card, no "Assistant" label
+  // Tool-only message
   return (
-    <View style={styles.toolOnlyContainer}>
+    <View style={styles.toolsContainer}>
       {toolParts.map((part, index) => (
         <ToolBlock key={index} part={part} colors={colors} />
       ))}
@@ -383,25 +377,17 @@ function MessageBlock({ message, colors }: {
 
 export function ChatScreen({
   session,
-  getSessionMessages,
+  messages,
+  loading,
+  refreshing,
+  onRefresh,
   onBack,
 }: ChatScreenProps) {
   const { theme, colors: c, isDark } = useTheme();
-  const [messages, setMessages] = useState<MessageWithParts[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [initialScrollDone, setInitialScrollDone] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const flatListRef = useRef<FlatList>(null);
-
-  const loadMessages = useCallback(async () => {
-    const data = await getSessionMessages(session.id);
-    setMessages(data);
-    setLoading(false);
-  }, [session.id, getSessionMessages]);
-
-  useEffect(() => {
-    loadMessages();
-  }, [loadMessages]);
+  const scrollButtonOpacity = useRef(new Animated.Value(0)).current;
 
   // Scroll to bottom when messages are first loaded
   useEffect(() => {
@@ -413,11 +399,37 @@ export function ChatScreen({
     }
   }, [messages, initialScrollDone]);
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadMessages();
-    setRefreshing(false);
-  }, [loadMessages]);
+  // Auto-scroll to bottom when new messages arrive (if already near bottom)
+  const prevMessageCount = useRef(messages.length);
+  useEffect(() => {
+    if (messages.length > prevMessageCount.current && initialScrollDone) {
+      // New message arrived, scroll to bottom
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+    prevMessageCount.current = messages.length;
+  }, [messages.length, initialScrollDone]);
+
+  // Show/hide scroll button based on scroll position
+  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const distanceFromBottom = contentSize.height - contentOffset.y - layoutMeasurement.height;
+    const shouldShow = distanceFromBottom > 200;
+    
+    if (shouldShow !== showScrollButton) {
+      setShowScrollButton(shouldShow);
+      Animated.timing(scrollButtonOpacity, {
+        toValue: shouldShow ? 1 : 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [showScrollButton, scrollButtonOpacity]);
+
+  const scrollToBottom = useCallback(() => {
+    flatListRef.current?.scrollToEnd({ animated: true });
+  }, []);
 
   return (
     <SafeAreaView style={theme.container}>
@@ -461,16 +473,16 @@ export function ChatScreen({
             tintColor={c.accent}
           />
         }
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         contentContainerStyle={[
           styles.listContent,
           messages.length === 0 && styles.emptyList
         ]}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <View style={[styles.emptyIcon, { backgroundColor: c.accentSubtle }]}>
-              <Icon name="message-square" size={32} color={c.accent} />
-            </View>
-            <Text style={[theme.subtitle, { marginTop: spacing.lg }]}>
+            <Icon name="message-square" size={48} color={c.textMuted} />
+            <Text style={[theme.subtitle, { marginTop: spacing.lg, color: c.text }]}>
               {loading ? 'Loading...' : 'No Messages'}
             </Text>
             <Text style={[theme.body, theme.textSecondary, styles.emptyText]}>
@@ -481,6 +493,23 @@ export function ChatScreen({
           </View>
         }
       />
+
+      {/* Scroll to bottom button */}
+      <Animated.View 
+        style={[
+          styles.scrollButtonContainer,
+          { opacity: scrollButtonOpacity }
+        ]}
+        pointerEvents={showScrollButton ? 'auto' : 'none'}
+      >
+        <TouchableOpacity
+          style={[styles.scrollButton, { backgroundColor: c.bgCard, borderColor: c.border }]}
+          onPress={scrollToBottom}
+          activeOpacity={0.8}
+        >
+          <Icon name="chevron-down" size={20} color={c.text} />
+        </TouchableOpacity>
+      </Animated.View>
     </SafeAreaView>
   );
 }
@@ -517,57 +546,34 @@ const styles = StyleSheet.create({
     width: 70,
   },
   listContent: {
-    paddingVertical: spacing.md,
+    paddingBottom: spacing.xxl,
   },
   emptyList: {
     flex: 1,
   },
   
   // Message containers
-  messageContainer: {
-    marginBottom: spacing.lg,
-  },
-  toolOnlyContainer: {
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    gap: spacing.sm,
-  },
-  roleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.sm,
-    gap: spacing.sm,
-  },
-  roleLabel: {
-    ...typography.smallMedium,
-  },
+  messageContainer: {},
   
-  // User message
+  // User message - edge to edge
   userMessageBlock: {
-    marginHorizontal: spacing.lg,
-    padding: spacing.md,
-    borderRadius: radius.lg,
+    padding: spacing.lg,
   },
   
-  // Assistant message with text
+  // Assistant message - edge to edge
   assistantMessageBlock: {
-    marginHorizontal: spacing.lg,
-    padding: spacing.md,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-  },
-  toolsAfterText: {
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.md,
-    gap: spacing.sm,
+    padding: spacing.lg,
   },
   
-  // Tool block - flat design
+  // Tools container
+  toolsContainer: {},
+  
+  // Tool block - edge to edge
   toolBlock: {
-    borderLeftWidth: 2,
+    borderLeftWidth: 3,
     paddingLeft: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingRight: spacing.lg,
+    paddingVertical: spacing.sm,
   },
   toolRow: {
     flexDirection: 'row',
@@ -608,7 +614,6 @@ const styles = StyleSheet.create({
   codeBlock: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderRadius: radius.sm,
   },
   codeText: {
     ...typography.mono,
@@ -642,15 +647,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xxl,
     paddingTop: 100,
   },
-  emptyIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   emptyText: {
     textAlign: 'center',
     marginTop: spacing.sm,
+  },
+  
+  // Scroll to bottom button
+  scrollButtonContainer: {
+    position: 'absolute',
+    bottom: spacing.xl,
+    right: spacing.lg,
+  },
+  scrollButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
 });
