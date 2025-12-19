@@ -10,7 +10,6 @@ import {
   Platform,
 } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
-import { GlassCard } from '../components/GlassCard';
 import { Icon } from '../components/Icon';
 import { spacing, radius, typography } from '../theme';
 
@@ -50,16 +49,16 @@ export function ConnectScreen({
           </View>
 
           {/* Connection Form */}
-          <GlassCard style={styles.formCard}>
+          <View style={styles.formContainer}>
             <View style={styles.inputGroup}>
               <Text style={[theme.smallMedium, theme.textSecondary, styles.label]}>
                 Server URL
               </Text>
               <TextInput
-                style={[theme.input, styles.input]}
+                style={[styles.input, { backgroundColor: c.bgCard, color: c.text }]}
                 value={serverUrl}
                 onChangeText={onServerUrlChange}
-                placeholder="http://192.168.1.100:4096"
+                placeholder="http://192.168.1.100:9034"
                 placeholderTextColor={c.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -81,8 +80,8 @@ export function ConnectScreen({
 
             <TouchableOpacity
               style={[
-                theme.buttonPrimary,
                 styles.connectButton,
+                { backgroundColor: c.accent },
                 connecting && styles.buttonDisabled,
               ]}
               onPress={onConnect}
@@ -94,13 +93,13 @@ export function ConnectScreen({
               ) : (
                 <>
                   <Icon name="wifi" size={20} color={c.textInverse} />
-                  <Text style={[theme.buttonPrimaryText, styles.buttonText]}>
+                  <Text style={[styles.buttonText, { color: c.textInverse }]}>
                     Connect
                   </Text>
                 </>
               )}
             </TouchableOpacity>
-          </GlassCard>
+          </View>
 
           {/* Status */}
           <View style={styles.statusRow}>
@@ -111,6 +110,18 @@ export function ConnectScreen({
             <Text style={theme.caption}>
               {connecting ? 'Connecting to server...' : 'Ready to connect'}
             </Text>
+          </View>
+
+          {/* Help text */}
+          <View style={styles.helpContainer}>
+            <Text style={[theme.caption, { color: c.textMuted, textAlign: 'center' }]}>
+              Start a server on your machine with:
+            </Text>
+            <View style={[styles.codeBlock, { backgroundColor: c.bgCard }]}>
+              <Text style={[styles.codeText, { color: c.textSecondary }]}>
+                opencode serve --port 9034 --hostname "0.0.0.0"
+              </Text>
+            </View>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -146,7 +157,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 280,
   },
-  formCard: {
+  formContainer: {
     maxWidth: 420,
     alignSelf: 'center',
     width: '100%',
@@ -159,6 +170,12 @@ const styles = StyleSheet.create({
   },
   input: {
     width: '100%',
+    ...typography.body,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.md,
+    verticalAlign: 'middle',
+    lineHeight: 20,
   },
   errorBox: {
     flexDirection: 'row',
@@ -171,8 +188,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.md,
   },
   buttonText: {
+    ...typography.bodyMedium,
     marginLeft: spacing.sm,
   },
   buttonDisabled: {
@@ -182,7 +203,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: spacing.xxxl,
+    marginTop: spacing.xxl,
     gap: spacing.sm,
+  },
+  helpContainer: {
+    marginTop: spacing.xxl,
+    alignItems: 'center',
+  },
+  codeBlock: {
+    marginTop: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.sm,
+  },
+  codeText: {
+    ...typography.mono,
+    fontSize: 12,
   },
 });
